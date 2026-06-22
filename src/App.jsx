@@ -842,10 +842,6 @@ export default function App() {
               <div className="grille" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(290px, 1fr))" }}>
                 {actus.filter((a) => a.publique).slice(0, 3).map((a) => <CarteActu key={a.id} a={a} />)}
               </div>
-              <p style={{ color: C.gris, marginTop: 18, fontSize: 15 }}>
-                Les actualités sont publiées par le bureau depuis son espace de gestion — sans
-                toucher au site.
-              </p>
             </section>
 
             {/* Bloc écoles / manifestations */}
