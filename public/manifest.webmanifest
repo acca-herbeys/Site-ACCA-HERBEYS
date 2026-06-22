@@ -1,0 +1,13 @@
+{
+  "name": "ACCA d'Herbeys",
+  "short_name": "ACCA Herbeys",
+  "description": "Association Communale de Chasse Agréée d'Herbeys",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#16301F",
+  "theme_color": "#16301F",
+  "icons": [
+    { "src": "/logo-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/logo-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
