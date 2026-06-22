@@ -892,9 +892,10 @@ export default function App() {
               <Titre>Le rôle de l'ACCA d'Herbeys</Titre>
               <div className="grille" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
                 {[
-                  ["Gestion du gibier", "Plan de chasse chevreuil, régulation du sanglier, comptages, agrainage et suivi des populations en lien avec la Fédération de l'Isère."],
-                  ["Entretien du territoire", "Travaux collectifs : pose et entretien des miradors, ouverture de layons, signalisation des zones de chasse, réserve de chasse et de faune sauvage."],
-                  ["Sécurité et dialogue", "Pose des panneaux « chasse en cours », règles strictes en battue, information du public et échanges avec la mairie, les écoles et les associations."],
+                  ["Gestion du gibier", "Suivi et régulation des populations de grand gibier (chevreuil, sanglier) dans le cadre du plan de chasse fixé avec la Fédération des Chasseurs de l'Isère. Comptages, observation des populations et prélèvements raisonnés assurent un équilibre durable entre la faune, la forêt et les activités agricoles."],
+                  ["Prévention des dégâts", "Le sanglier et le grand gibier peuvent causer d'importants dégâts aux cultures et aux prairies. Par une régulation maîtrisée et un travail de terrain constant, les chasseurs limitent ces dommages et protègent le travail des agriculteurs de la commune."],
+                  ["Entretien du territoire", "Travaux collectifs tout au long de l'année : pose et entretien des miradors, ouverture et entretien des layons, signalisation des secteurs, gestion de la réserve de chasse et de faune sauvage où toute chasse est interdite."],
+                  ["Sécurité et dialogue", "La sécurité est la priorité absolue. Panneaux « chasse en cours » aux abords des battues, règles strictes et rappelées avant chaque sortie, port du vêtement fluorescent, identification formelle du gibier avant tout tir. Les chasseurs informent et dialoguent en permanence avec les promeneurs, la mairie, les écoles et les organisateurs d'activités de plein air pour que chacun profite de la nature en toute sécurité."],
                 ].map(([t, x], i) => (
                   <div key={i} className="carte" style={{ borderTop: "3px solid " + C.cuivre }}>
                     <h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 20, margin: "0 0 10px" }}>{t}</h3>
