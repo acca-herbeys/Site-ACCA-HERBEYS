@@ -374,6 +374,11 @@ export default function App() {
   const [docFichier, setDocFichier] = useState(null);
   const [docEnvoi, setDocEnvoi] = useState(false);
 
+  // formulaire planning tir d'été (un chasseur par jour)
+  const [planDate, setPlanDate] = useState("");
+  const [planChasseur, setPlanChasseur] = useState("");
+  const [planErreur, setPlanErreur] = useState("");
+
   // Chargement initial depuis Firebase. Si le document n'existe pas encore,
   // on l'initialise avec les valeurs par défaut (première mise en ligne).
   useEffect(() => {
@@ -412,8 +417,6 @@ export default function App() {
     setMessageSauvegarde(ok ? "Enregistré ✓" : "Échec de l'enregistrement");
     setTimeout(() => setMessageSauvegarde(""), 2500);
   };
-
-  const demo = () => alert("Le téléchargement sera actif une fois les documents ajoutés (étape suivante).");
 
   const aller = (p) => {
     setPage(p);
@@ -473,6 +476,41 @@ export default function App() {
   const retirerPlanning = (id) => {
     const nouveau = tirPlanning.filter((x) => x.id !== id);
     setTirPlanning(nouveau);
+    persister({ tirPlanning: nouveau });
+  };
+
+  // Ajoute une attribution au planning : un seul chasseur par jour, vendredi interdit,
+  // dans la période du tir d'été (01/07 → 12/09/2026).
+  const JOURS_FR = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
+  const ajouterPlanning = () => {
+    setPlanErreur("");
+    if (!planDate || !planChasseur.trim()) {
+      setPlanErreur("Indiquez une date et le nom du chasseur.");
+      return;
+    }
+    // La date arrive au format AAAA-MM-JJ ; on lit le jour sans décalage horaire.
+    const [a, m, j] = planDate.split("-").map(Number);
+    const d = new Date(a, m - 1, j);
+    if (d.getDay() === 5) {
+      setPlanErreur("Le vendredi, la chasse est interdite en Isère. Choisissez un autre jour.");
+      return;
+    }
+    const debut = new Date(2026, 6, 1), fin = new Date(2026, 8, 12);
+    if (d < debut || d > fin) {
+      setPlanErreur("La date doit être comprise entre le 1er juillet et le 12 septembre 2026.");
+      return;
+    }
+    if (tirPlanning.some((r) => r.iso === planDate)) {
+      setPlanErreur("Un chasseur est déjà attribué ce jour-là (un seul chasseur par jour).");
+      return;
+    }
+    const libelle = `${JOURS_FR[d.getDay()]} ${j} ${["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"][m-1]} ${a}`;
+    const nouveau = [
+      ...tirPlanning,
+      { id: Date.now(), iso: planDate, date: libelle, chasseur: planChasseur.trim() },
+    ].sort((x, y) => (x.iso || "").localeCompare(y.iso || ""));
+    setTirPlanning(nouveau);
+    setPlanDate(""); setPlanChasseur("");
     persister({ tirPlanning: nouveau });
   };
 
@@ -1422,27 +1460,23 @@ export default function App() {
                 </h3>
                 <p style={{ color: C.gris, fontSize: 14, margin: "0 0 14px" }}>
                   {tirPlanning.length
-                    ? "Attributions de la saison. En cas d'empêchement, prévenez le bureau."
-                    : "Le planning sera publié par le bureau après le tirage au sort."}
+                    ? "Un seul chasseur par jour. Le vendredi, la chasse est interdite. En cas d'empêchement, prévenez le bureau."
+                    : "Le planning sera publié par le bureau après le tirage au sort (un chasseur par jour)."}
                 </p>
                 {tirPlanning.length > 0 && (
                   <div style={{ overflowX: "auto" }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 15, minWidth: 480 }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 15, minWidth: 360 }}>
                       <thead>
                         <tr style={{ textAlign: "left", color: C.foret2 }}>
-                          <th style={{ padding: "8px 10px", borderBottom: "2px solid " + C.ligne }}>Date</th>
-                          <th style={{ padding: "8px 10px", borderBottom: "2px solid " + C.ligne }}>Créneau</th>
-                          <th style={{ padding: "8px 10px", borderBottom: "2px solid " + C.ligne }}>Secteur</th>
-                          <th style={{ padding: "8px 10px", borderBottom: "2px solid " + C.ligne }}>Chasseur</th>
+                          <th style={{ padding: "8px 10px", borderBottom: "2px solid " + C.ligne }}>Jour</th>
+                          <th style={{ padding: "8px 10px", borderBottom: "2px solid " + C.ligne }}>Chasseur autorisé</th>
                           {peutEditer && <th style={{ borderBottom: "2px solid " + C.ligne }} />}
                         </tr>
                       </thead>
                       <tbody>
                         {tirPlanning.map((r) => (
                           <tr key={r.id}>
-                            <td style={{ padding: "9px 10px", borderBottom: "1px solid " + C.ligne }}>{r.date}</td>
-                            <td style={{ padding: "9px 10px", borderBottom: "1px solid " + C.ligne }}>{r.creneau}</td>
-                            <td style={{ padding: "9px 10px", borderBottom: "1px solid " + C.ligne }}>{r.secteur}</td>
+                            <td style={{ padding: "9px 10px", borderBottom: "1px solid " + C.ligne, textTransform: "capitalize" }}>{r.date}</td>
                             <td style={{ padding: "9px 10px", borderBottom: "1px solid " + C.ligne, fontWeight: 600 }}>{r.chasseur}</td>
                             {peutEditer && (
                               <td style={{ borderBottom: "1px solid " + C.ligne, textAlign: "right" }}>
@@ -1461,9 +1495,33 @@ export default function App() {
                   </div>
                 )}
                 {peutEditer && (
-                  <button className="btn-vert" style={{ marginTop: 16 }} onClick={demo}>
-                    + Ajouter une attribution (après tirage)
-                  </button>
+                  <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid " + C.ligne }}>
+                    <strong style={{ fontSize: 15 }}>Ajouter une attribution (après tirage)</strong>
+                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end", marginTop: 10 }}>
+                      <div>
+                        <label htmlFor="plandate" style={{ margin: "0 0 4px" }}>Date</label>
+                        <input
+                          id="plandate" type="date" value={planDate}
+                          min="2026-07-01" max="2026-09-12"
+                          onChange={(e) => setPlanDate(e.target.value)}
+                          style={{ width: "auto" }}
+                        />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 180 }}>
+                        <label htmlFor="planchass" style={{ margin: "0 0 4px" }}>Chasseur</label>
+                        <input
+                          id="planchass" list="liste-inscrits" value={planChasseur}
+                          onChange={(e) => setPlanChasseur(e.target.value)}
+                          placeholder="Nom du chasseur tiré au sort"
+                        />
+                        <datalist id="liste-inscrits">
+                          {tirInscrits.map((p) => <option key={p.id} value={p.nom} />)}
+                        </datalist>
+                      </div>
+                      <button className="btn-cuivre" onClick={ajouterPlanning}>Ajouter</button>
+                    </div>
+                    {planErreur && <p style={{ color: "#B3261E", fontWeight: 600, margin: "10px 0 0", fontSize: 14 }}>{planErreur}</p>}
+                  </div>
                 )}
               </div>
             </div>
