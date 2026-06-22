@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { chargerContenu, sauverContenu } from "./donnees";
+import { listerDocuments, ajouterDocument, supprimerDocument } from "./documents";
 
 /* ================================================================
    ACCA d'Herbeys (38320 Herbeys, Isère) — site associatif
@@ -215,22 +216,6 @@ const TIR_ETE_INSCRITS_INIT = [];
 
 const TIR_ETE_PLANNING_INIT = [];
 
-const DOCS_ADHERENTS = [
-  ["Règlement intérieur de chasse (RIC) 2025/2026", "PDF", "01/09/2025"],
-  ["Statuts 2021 révisés", "PDF", "01/01/2021"],
-  ["Engagement du chasseur", "PDF", "01/09/2025"],
-  ["Consignes de sécurité à la chasse", "PDF", "01/09/2025"],
-  ["Calendrier de la saison 2026/2027", "PDF", "11/06/2026"],
-];
-
-const DOCS_BUREAU = [
-  ["PV de l'assemblée générale du 11 juin 2026", "PDF", "11/06/2026"],
-  ["PV du conseil d'administration (désignation du bureau)", "PDF", "11/06/2026"],
-  ["Statuts 2021 révisés", "PDF", "01/01/2021"],
-  ["Liste des sociétaires 2024/2025", "PDF", "01/09/2024"],
-  ["Bilans financiers — en attente", "—", "—"],
-];
-
 /* ---------------- Composants ---------------- */
 
 function Eyebrow({ children, light }) {
@@ -294,15 +279,28 @@ function BandeauPhoto({ image, eyebrow, titre, texte, children }) {
   );
 }
 
-function Doc({ nom, type, maj, demo }) {
+function Doc({ d, peutEditer, onSupprimer }) {
+  const dateTxt = d.date && d.date.seconds
+    ? new Date(d.date.seconds * 1000).toLocaleDateString("fr-FR")
+    : "";
   return (
     <div className="doc-row">
-      <div className="doc-badge" data-type={type}>{type}</div>
+      <div className="doc-badge" data-type={d.type}>{d.type || "DOC"}</div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 600, fontSize: 16 }}>{nom}</div>
-        <div className="mono-meta">mis à jour le {maj}</div>
+        <div style={{ fontWeight: 600, fontSize: 16 }}>{d.nom}</div>
+        {dateTxt && <div className="mono-meta">ajouté le {dateTxt}</div>}
       </div>
-      <button className="btn-vert" onClick={demo}>Télécharger</button>
+      <a className="btn-vert" href={d.url} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>
+        Télécharger
+      </a>
+      {peutEditer && (
+        <button
+          onClick={() => onSupprimer(d)}
+          style={{ background: "none", border: "none", color: "#B3261E", cursor: "pointer", fontSize: 13, fontWeight: 600 }}
+        >
+          supprimer
+        </button>
+      )}
     </div>
   );
 }
@@ -368,6 +366,13 @@ export default function App() {
     photo: true,
   });
 
+  // Documents (Firebase Storage + Firestore)
+  const [documents, setDocuments] = useState([]);
+  const [docNom, setDocNom] = useState("");
+  const [docCategorie, setDocCategorie] = useState("adherent");
+  const [docFichier, setDocFichier] = useState(null);
+  const [docEnvoi, setDocEnvoi] = useState(false);
+
   // Chargement initial depuis Firebase. Si le document n'existe pas encore,
   // on l'initialise avec les valeurs par défaut (première mise en ligne).
   useEffect(() => {
@@ -391,6 +396,7 @@ export default function App() {
       }
       setChargement(false);
     })();
+    listerDocuments().then(setDocuments);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -467,6 +473,36 @@ export default function App() {
     const nouveau = tirPlanning.filter((x) => x.id !== id);
     setTirPlanning(nouveau);
     persister({ tirPlanning: nouveau });
+  };
+
+  const envoyerDocument = async () => {
+    if (!docFichier) return;
+    setDocEnvoi(true);
+    try {
+      const ajoute = await ajouterDocument(docFichier, docNom.trim(), docCategorie);
+      // recharge la liste pour avoir la date serveur
+      const liste = await listerDocuments();
+      setDocuments(liste.length ? liste : [ajoute, ...documents]);
+      setDocNom(""); setDocFichier(null);
+      // réinitialise le champ fichier
+      const input = document.getElementById("docfichier");
+      if (input) input.value = "";
+    } catch (e) {
+      alert("L'envoi a échoué. Vérifie ta connexion et réessaie.");
+      console.error(e);
+    }
+    setDocEnvoi(false);
+  };
+
+  const enleverDocument = async (d) => {
+    if (!window.confirm(`Supprimer le document « ${d.nom} » ?`)) return;
+    try {
+      await supprimerDocument(d);
+      setDocuments(documents.filter((x) => x.id !== d.id));
+    } catch (e) {
+      alert("La suppression a échoué.");
+      console.error(e);
+    }
   };
 
   const mailto = `mailto:${EMAIL}?subject=${encodeURIComponent(
@@ -1477,8 +1513,39 @@ export default function App() {
             {/* Documents */}
             <Eyebrow>Documents</Eyebrow>
             <Titre size={26}>Documents des adhérents</Titre>
+            {peutEditer && (
+              <div className="carte" style={{ marginBottom: 20, borderTop: "4px solid " + C.cuivre }}>
+                <h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 20, margin: "0 0 4px" }}>
+                  Ajouter un document
+                </h3>
+                <p style={{ color: C.gris, fontSize: 14, margin: "0 0 8px" }}>
+                  Choisissez un fichier (PDF, Word, Excel…), un nom lisible, et qui peut le voir.
+                </p>
+                <label htmlFor="docnom">Nom affiché</label>
+                <input id="docnom" value={docNom} onChange={(e) => setDocNom(e.target.value)}
+                  placeholder="Ex. : Règlement intérieur 2026/2027" />
+                <label htmlFor="doccat">Visible par</label>
+                <select id="doccat" value={docCategorie} onChange={(e) => setDocCategorie(e.target.value)}>
+                  <option value="adherent">Adhérents (et bureau)</option>
+                  <option value="bureau">Bureau et admin uniquement</option>
+                </select>
+                <label htmlFor="docfichier">Fichier</label>
+                <input id="docfichier" type="file" onChange={(e) => setDocFichier(e.target.files[0] || null)} />
+                <div style={{ marginTop: 14 }}>
+                  <button className="btn-cuivre" onClick={envoyerDocument} disabled={docEnvoi || !docFichier}
+                    style={{ opacity: docEnvoi || !docFichier ? 0.6 : 1 }}>
+                    {docEnvoi ? "Envoi en cours…" : "Envoyer le document"}
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="grille" style={{ marginBottom: 44 }}>
-              {DOCS_ADHERENTS.map(([n, t, m], i) => <Doc key={i} nom={n} type={t} maj={m} demo={demo} />)}
+              {documents.filter((d) => d.categorie === "adherent").length === 0 && (
+                <p style={{ color: C.gris }}>Aucun document pour le moment.</p>
+              )}
+              {documents.filter((d) => d.categorie === "adherent").map((d) => (
+                <Doc key={d.id} d={d} peutEditer={peutEditer} onSupprimer={enleverDocument} />
+              ))}
             </div>
 
             {peutEditer && (
@@ -1486,11 +1553,13 @@ export default function App() {
                 <Eyebrow>Administration</Eyebrow>
                 <Titre size={26}>Documents du bureau</Titre>
                 <div className="grille">
-                  {DOCS_BUREAU.map(([n, t, m], i) => <Doc key={i} nom={n} type={t} maj={m} demo={demo} />)}
+                  {documents.filter((d) => d.categorie === "bureau").length === 0 && (
+                    <p style={{ color: C.gris }}>Aucun document réservé au bureau pour le moment.</p>
+                  )}
+                  {documents.filter((d) => d.categorie === "bureau").map((d) => (
+                    <Doc key={d.id} d={d} peutEditer={peutEditer} onSupprimer={enleverDocument} />
+                  ))}
                 </div>
-                <button className="btn-vert" style={{ marginTop: 18 }} onClick={demo}>
-                  + Ajouter un document
-                </button>
               </>
             )}
           </section>
