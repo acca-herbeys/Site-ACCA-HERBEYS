@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { chargerContenu, sauverContenu } from "./donnees";
 
 /* ================================================================
    ACCA d'Herbeys (38320 Herbeys, Isère) — site associatif
@@ -341,9 +342,11 @@ export default function App() {
   const [erreur, setErreur] = useState("");
   const [actus, setActus] = useState(ACTUS_INIT);
   const [menuOuvert, setMenuOuvert] = useState(false);
+  const [chargement, setChargement] = useState(true);
+  const [messageSauvegarde, setMessageSauvegarde] = useState("");
 
-  // Codes (proviendront de Firebase au bloc 2 ; valeurs par défaut pour l'instant).
-  const codes = CODES_DEFAUT;
+  // Codes d'accès — stockés dans Firebase, modifiables depuis l'espace admin.
+  const [codes, setCodes] = useState(CODES_DEFAUT);
 
   // Le bureau et l'admin ont les droits d'édition ; l'admin a en plus les réglages sensibles.
   const peutEditer = acces === "bureau" || acces === "admin";
@@ -366,7 +369,6 @@ export default function App() {
   const [tirTel, setTirTel] = useState("");
 
   // Bandeau prioritaire (accueil) — modifiable depuis l'espace bureau/admin.
-  // Sert d'hommage aujourd'hui, d'info prioritaire demain. Sera stocké dans Firebase (bloc 2).
   const [banniere, setBanniere] = useState({
     active: true,
     style: "hommage", // "hommage" (sombre) | "info" (cuivre)
@@ -377,8 +379,46 @@ export default function App() {
       "de la chasse, du territoire et de tous ses adhérents. Le bureau et l'ensemble des chasseurs " +
       "lui rendent hommage et poursuivent son engagement pour notre commune. Nous adressons nos " +
       "pensées les plus sincères à sa famille et à ses proches.",
-    photo: true, // afficher l'emplacement photo
+    photo: true,
   });
+
+  // Chargement initial depuis Firebase. Si le document n'existe pas encore,
+  // on l'initialise avec les valeurs par défaut (première mise en ligne).
+  useEffect(() => {
+    (async () => {
+      const c = await chargerContenu();
+      if (c) {
+        if (c.codes) setCodes(c.codes);
+        if (c.banniere) setBanniere(c.banniere);
+        if (Array.isArray(c.actus)) setActus(c.actus);
+        if (Array.isArray(c.tirInscrits)) setTirInscrits(c.tirInscrits);
+        if (Array.isArray(c.tirPlanning)) setTirPlanning(c.tirPlanning);
+      } else {
+        // Première fois : on crée le document avec les valeurs par défaut.
+        await sauverContenu({
+          codes: CODES_DEFAUT,
+          banniere,
+          actus: ACTUS_INIT,
+          tirInscrits: [],
+          tirPlanning: [],
+        });
+      }
+      setChargement(false);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sauvegarde l'ensemble du contenu dans Firebase, avec un retour visuel.
+  const persister = async (partiel) => {
+    const contenu = {
+      codes, banniere, actus, tirInscrits, tirPlanning,
+      ...partiel, // les valeurs fraîches à écraser (état pas encore propagé)
+    };
+    setMessageSauvegarde("Enregistrement…");
+    const ok = await sauverContenu(contenu);
+    setMessageSauvegarde(ok ? "Enregistré ✓" : "Échec de l'enregistrement");
+    setTimeout(() => setMessageSauvegarde(""), 2500);
+  };
 
   const demo = () => alert("Le téléchargement sera actif une fois les documents ajoutés (étape suivante).");
 
@@ -399,7 +439,7 @@ export default function App() {
   const publierActu = () => {
     if (!nTitre.trim() || !nTexte.trim()) return;
     const d = new Date();
-    setActus([
+    const nouvelles = [
       {
         id: Date.now(),
         date: d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }),
@@ -408,8 +448,16 @@ export default function App() {
         publique: nPublique,
       },
       ...actus,
-    ]);
+    ];
+    setActus(nouvelles);
     setNTitre(""); setNTexte("");
+    persister({ actus: nouvelles });
+  };
+
+  const supprimerActu = (id) => {
+    const nouvelles = actus.filter((x) => x.id !== id);
+    setActus(nouvelles);
+    persister({ actus: nouvelles });
   };
 
   const sInscrireTir = () => {
@@ -417,8 +465,22 @@ export default function App() {
     if (tirInscrits.some((p) => p.nom.toLowerCase() === tirNom.trim().toLowerCase())) {
       setTirNom(""); setTirTel(""); return;
     }
-    setTirInscrits([...tirInscrits, { id: Date.now(), nom: tirNom.trim(), tel: tirTel.trim() }]);
+    const nouveaux = [...tirInscrits, { id: Date.now(), nom: tirNom.trim(), tel: tirTel.trim() }];
+    setTirInscrits(nouveaux);
     setTirNom(""); setTirTel("");
+    persister({ tirInscrits: nouveaux });
+  };
+
+  const retirerInscrit = (id) => {
+    const nouveaux = tirInscrits.filter((x) => x.id !== id);
+    setTirInscrits(nouveaux);
+    persister({ tirInscrits: nouveaux });
+  };
+
+  const retirerPlanning = (id) => {
+    const nouveau = tirPlanning.filter((x) => x.id !== id);
+    setTirPlanning(nouveau);
+    persister({ tirPlanning: nouveau });
   };
 
   const mailto = `mailto:${EMAIL}?subject=${encodeURIComponent(
@@ -443,6 +505,21 @@ export default function App() {
     ["vie", "Vie de l'association"],
     ["contact", "Contact"],
   ];
+
+  if (chargement) {
+    return (
+      <div style={{
+        fontFamily: "'Public Sans', sans-serif", background: C.foret, color: "#fff",
+        minHeight: "100vh", display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center", gap: 18,
+      }}>
+        <img src="/logo.png" alt="ACCA d'Herbeys" style={{ width: 90, height: 90, borderRadius: "50%" }} />
+        <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, letterSpacing: "0.15em", color: "#B9C8B6" }}>
+          CHARGEMENT…
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ fontFamily: "'Public Sans', sans-serif", color: C.encre, background: C.creme }}>
@@ -1154,6 +1231,43 @@ export default function App() {
                   />
                   Afficher un emplacement photo
                 </label>
+                <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 16 }}>
+                  <button className="btn-cuivre" onClick={() => persister({ banniere })}>
+                    Enregistrer le bandeau
+                  </button>
+                  {messageSauvegarde && <span style={{ color: C.gris, fontSize: 14 }}>{messageSauvegarde}</span>}
+                </div>
+              </div>
+            )}
+
+            {/* Gestion des codes d'accès (admin uniquement) */}
+            {estAdmin && (
+              <div className="carte" style={{ marginBottom: 44, borderTop: "4px solid #7A2E12" }}>
+                <h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 23, margin: "0 0 4px" }}>
+                  Codes d'accès
+                </h3>
+                <p style={{ color: C.gris, fontSize: 15, margin: "0 0 8px" }}>
+                  Réservé à l'administrateur. Modifiez les codes puis enregistrez. Le nouveau code
+                  sera demandé à la prochaine connexion. Communiquez-les uniquement aux personnes concernées.
+                </p>
+                <label htmlFor="cadh">Code adhérent</label>
+                <input id="cadh" value={codes.adherent}
+                  onChange={(e) => setCodes({ ...codes, adherent: e.target.value.toUpperCase() })}
+                  style={{ fontFamily: "'IBM Plex Mono', monospace", letterSpacing: "0.08em" }} />
+                <label htmlFor="cbur">Code bureau</label>
+                <input id="cbur" value={codes.bureau}
+                  onChange={(e) => setCodes({ ...codes, bureau: e.target.value.toUpperCase() })}
+                  style={{ fontFamily: "'IBM Plex Mono', monospace", letterSpacing: "0.08em" }} />
+                <label htmlFor="cadm">Code admin</label>
+                <input id="cadm" value={codes.admin}
+                  onChange={(e) => setCodes({ ...codes, admin: e.target.value.toUpperCase() })}
+                  style={{ fontFamily: "'IBM Plex Mono', monospace", letterSpacing: "0.08em" }} />
+                <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 16 }}>
+                  <button className="btn-cuivre" onClick={() => persister({ codes })}>
+                    Enregistrer les codes
+                  </button>
+                  {messageSauvegarde && <span style={{ color: C.gris, fontSize: 14 }}>{messageSauvegarde}</span>}
+                </div>
               </div>
             )}
 
@@ -1196,7 +1310,7 @@ export default function App() {
                   <CarteActu a={a} />
                   {peutEditer && (
                     <button
-                      onClick={() => setActus(actus.filter((x) => x.id !== a.id))}
+                      onClick={() => supprimerActu(a.id)}
                       style={{
                         position: "absolute", top: 10, right: 10, background: "#FBEAE8",
                         color: "#B3261E", border: "none", borderRadius: 4, padding: "4px 10px",
@@ -1252,7 +1366,7 @@ export default function App() {
                       <span style={{ flex: 1 }}>{p.nom}{p.tel ? " · " + p.tel : ""}</span>
                       {peutEditer && (
                         <button
-                          onClick={() => setTirInscrits(tirInscrits.filter((x) => x.id !== p.id))}
+                          onClick={() => retirerInscrit(p.id)}
                           style={{ background: "none", border: "none", color: "#B3261E", cursor: "pointer", fontSize: 13, fontWeight: 600 }}
                         >
                           retirer
@@ -1295,7 +1409,7 @@ export default function App() {
                             {peutEditer && (
                               <td style={{ borderBottom: "1px solid " + C.ligne, textAlign: "right" }}>
                                 <button
-                                  onClick={() => setTirPlanning(tirPlanning.filter((x) => x.id !== r.id))}
+                                  onClick={() => retirerPlanning(r.id)}
                                   style={{ background: "none", border: "none", color: "#B3261E", cursor: "pointer", fontSize: 13, fontWeight: 600 }}
                                 >
                                   retirer
