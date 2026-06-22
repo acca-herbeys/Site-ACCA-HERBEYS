@@ -323,6 +323,7 @@ export default function App() {
   const [page, setPage] = useState("accueil");
   const [acces, setAcces] = useState(null); // null | "adherent" | "bureau" | "admin"
   const [code, setCode] = useState("");
+  const [voirCode, setVoirCode] = useState(false);
   const [erreur, setErreur] = useState("");
   const [actus, setActus] = useState(ACTUS_INIT);
   const [menuOuvert, setMenuOuvert] = useState(false);
@@ -1128,13 +1129,28 @@ export default function App() {
             </p>
             <div className="carte" style={{ borderTop: "4px solid " + C.cuivre, marginTop: 8 }}>
               <label htmlFor="code">Code d'accès</label>
-              <input
-                id="code" type="password" value={code}
-                onChange={(e) => setCode(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && connecter()}
-                placeholder="••••••••"
-                style={{ fontFamily: "'IBM Plex Mono', monospace", letterSpacing: "0.15em", fontSize: 18 }}
-              />
+              <div style={{ position: "relative" }}>
+                <input
+                  id="code" type={voirCode ? "text" : "password"} value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && connecter()}
+                  placeholder="••••••••"
+                  style={{ fontFamily: "'IBM Plex Mono', monospace", letterSpacing: "0.15em", fontSize: 18, paddingRight: 48 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setVoirCode(!voirCode)}
+                  aria-label={voirCode ? "Masquer le code" : "Afficher le code"}
+                  title={voirCode ? "Masquer le code" : "Afficher le code"}
+                  style={{
+                    position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)",
+                    background: "none", border: "none", cursor: "pointer", fontSize: 20,
+                    padding: "4px 8px", lineHeight: 1,
+                  }}
+                >
+                  {voirCode ? "🙈" : "👁️"}
+                </button>
+              </div>
               {erreur && (
                 <p style={{ color: "#B3261E", fontWeight: 600, margin: "12px 0 0" }}>{erreur}</p>
               )}
