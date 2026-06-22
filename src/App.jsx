@@ -7,79 +7,65 @@ import { chargerContenu, sauverContenu } from "./donnees";
    contenus éditables seront stockés dans Firebase au bloc 2.
    ================================================================ */
 
-const WIX = "https://static.wixstatic.com/media/";
-const PDF = "https://www.accadianedherbeys.com/_files/ugd/";
-const img = (id, w, h) =>
-  `${WIX}${id}/v1/fill/w_${w},h_${h},al_c,q_85,enc_avif,quality_auto/${id.split("~")[0]}.jpg`;
+/* ---------------- Données faune ---------------- */
 
 const IMG = {
   logo: `/logo.png`,
-  hero: img("85f885_1e9473eff9c1403ca13fe2b3014d4875~mv2.jpg", 1800, 740),
-  acca: img("85f885_076ca16752a449c8a5158a01265fa790~mv2.jpg", 1600, 700),
-  chasse: img("9e2aaf0a80b94f009cbe35be931f90bd.jpg", 1600, 700),
-  faune: img("85f885_f2a9b8b777804ecca957ce3a15823991~mv2.jpg", 1600, 600),
-  vie: img("85f885_b744247e099e4179a729713f95e028d5~mv2.jpg", 1600, 700),
-  reglement: img("85f885_7730dfa961bd4ce4aaecab3ae1941ac5~mv2.jpg", 1200, 800),
-  bureau: img("85f885_feaa0b4b341c4f8891ee3c52a5a30fac~mv2.jpg", 1600, 600),
-  jours: img("85f885_d4d59e65c05747a7881d01dd1f9fd419~mv2.jpg", 1200, 750),
-  fdci: `${WIX}85f885_d465d2c7508c404c848aa68a64e247b2~mv2.png/v1/fill/w_260,h_166,al_c,q_90/fdci.png`,
-  mairie: `${WIX}85f885_0cba9bcfeb3d4b6bac02651065f4c7a5~mv2.png/v1/fill/w_216,h_114,al_c,q_90/mairie.png`,
+  hero: `/fond-hero-accueil.jpg`,
+  acca: `/fond-association.jpg`,
+  chasse: `/fond-chasse.jpg`,
+  faune: `/fond-faune.jpg`,
+  vie: `/vie-association-1.jpg`,
+  reglement: `/fond-reglement.jpg`,
+  bureau: `/fond-bureau.jpg`,
+  jours: `/fond-jours.jpg`,
+  fdci: `/logo-fdci.png`,
+  mairie: `/logo-mairie.png`,
 };
 
 const GALERIE = [
-  "85f885_07c9440f93bd4df59ffe680b71c3398f~mv2.jpg",
-  "85f885_7093b5f34a7e4faaaef8eceee182a082~mv2.jpg",
-  "85f885_b9093da100dc4cbcb768051ba6a1aa26~mv2.jpg",
-  "85f885_14e6c893772844f9a2826724fb4ea7b6~mv2.jpg",
-  "85f885_69ccc7e05e56461695aa3a024f2d8e98~mv2.jpg",
-  "85f885_e8eff0bb17f549eb8e5e3890ade66cc0~mv2.jpg",
-  "85f885_dc16dfc499db4f1c815bf2f33b11d915~mv2.jpg",
-  "85f885_e3e2eb56e8ae43688ccc149f0eeaa9e6~mv2.jpg",
-  "85f885_12c14bd596b34c1d943f0cb0b3c1ffd0~mv2.jpg",
-].map((id) => img(id, 700, 500));
+  "/vie-association-1b.jpg",
+  "/vie-association-2.jpg",
+  "/vie-association-3.jpg",
+  "/vie-association-4.jpg",
+  "/vie-association-5.jpg",
+  "/vie-association-6.jpg",
+  "/vie-association-7.jpg",
+  "/vie-association-8.jpg",
+  "/vie-association-9.jpg",
+];
 
 // Photos libres de droits (Wikimedia Commons, URLs stables Special:FilePath).
 // `pdf` renseigné = fiche descriptive d'origine de l'ACCA ; sinon, pas de lien fiche.
 const FAUNE = [
   { nom: "Chevreuil", desc: "Cervidé typiquement forestier, 20–30 kg.", credit: "CC BY-SA 3.0 — 4028mdk09",
-    image: "https://commons.wikimedia.org/wiki/Special:FilePath/2010-03-11_%2815%29_Reh%2C_Roe_deer%2C_Capreolus_capreolus.JPG?width=900",
-    pdf: PDF + "85f885_1eb621c696d042a1891e8cdf6790c96e.pdf" },
+    image: "/animal-chevreuil.jpg", pdf: "/fiche-chevreuil.pdf" },
   { nom: "Cerf élaphe", desc: "Le plus grand cervidé de nos forêts.", credit: "CC BY-SA 3.0 — Luc Viatour",
-    image: "https://commons.wikimedia.org/wiki/Special:FilePath/Cervus_elaphus_Luc_Viatour_1.jpg?width=900",
-    pdf: PDF + "85f885_1a8cd92d11444d7992dce6c839eb14bc.pdf" },
+    image: "/animal-cerf.jpg", pdf: "/fiche-cerf.pdf" },
   { nom: "Sanglier", desc: "Ancêtre du porc, omnivore et prolifique.", credit: "CC BY-SA 4.0 — F. Bellamoli",
-    image: "https://commons.wikimedia.org/wiki/Special:FilePath/Sardinian_wild_boar_%28Sus_scrofa_meridionalis%29.JPG?width=900",
-    pdf: PDF + "85f885_f8ed9976655d424ca37d321aa74aa23b.pdf" },
+    image: "/animal-sanglier.jpg", pdf: "/fiche-sanglier.pdf" },
   { nom: "Renard roux", desc: "Canidé carnivore, 6–10 kg.", credit: "CC BY-SA 2.0 — Peter Trimming",
-    image: "https://commons.wikimedia.org/wiki/Special:FilePath/Red_Fox_%28Vulpes_vulpes%29_-British_Wildlife_Centre-8.jpg?width=900",
-    pdf: PDF + "85f885_506aec2614d04f1bb18eeb84215c2f9c.pdf" },
+    image: "/animal-renard.jpg", pdf: "/fiche-renard.pdf" },
   { nom: "Blaireau", desc: "Mustélidé fouisseur, vit en clan dans son terrier.", credit: "CC BY-SA 2.5 — Ørland",
-    image: "https://commons.wikimedia.org/wiki/Special:FilePath/Meles_meles_norway_1.JPG?width=900",
-    pdf: "" },
+    image: "/animal-blaireau.jpg", pdf: "" },
   { nom: "Martre", desc: "Mustélidé arboricole et nocturne des forêts.", credit: "CC BY-SA 3.0 — Bohuš Číčel",
-    image: "https://commons.wikimedia.org/wiki/Special:FilePath/Martes_martes_in_Sweden.jpg?width=900",
-    pdf: "" },
+    image: "https://commons.wikimedia.org/wiki/Special:FilePath/Martes_martes_in_Sweden.jpg?width=900", pdf: "" },
   { nom: "Lièvre d'Europe", desc: "La hase, le bouquin et le levraut.", credit: "CC BY-SA 2.5 — F. Böhringer",
     image: "https://commons.wikimedia.org/wiki/Special:FilePath/Feldhase%2C_Lepus_europaeus_4a.JPG?width=900",
-    pdf: PDF + "85f885_e721d20eb9514c6398c41fce8c2298a6.pdf" },
+    pdf: "/fiche-lievre-europe.pdf" },
   { nom: "Lièvre variable", desc: "Le « blanchon », blanc l'hiver, adapté au froid.", credit: "CC BY-SA 4.0 — K. Bjørnsrud",
     image: "https://commons.wikimedia.org/wiki/Special:FilePath/Mountain_hare_%28Lepus_timidus%29_Oppdal.jpg?width=900",
-    pdf: PDF + "85f885_9ba48acebc0e4a41b7135f0a105515db.pdf" },
+    pdf: "/fiche-lievre-variable.pdf" },
   { nom: "Faisan commun", desc: "Galliforme au plumage éclatant chez le mâle.", credit: "CC BY 3.0 — David Croad",
-    image: "https://commons.wikimedia.org/wiki/Special:FilePath/Common_Pheasant_Phasianus_Colchicus.jpg?width=900",
-    pdf: "" },
+    image: "https://commons.wikimedia.org/wiki/Special:FilePath/Common_Pheasant_Phasianus_Colchicus.jpg?width=900", pdf: "" },
   { nom: "Perdrix rouge", desc: "Gibier à plume des coteaux ouverts et secs.", credit: "CC BY-SA 4.0 — Wikimedia Commons",
-    image: "https://commons.wikimedia.org/wiki/Special:FilePath/Red-legged_Partridge_%28Perdiz_Roja%29_%28Alectoris_rufa%29_-_Torrevieja%2C_Spain_2024-02-04.jpg?width=900",
-    pdf: "" },
+    image: "https://commons.wikimedia.org/wiki/Special:FilePath/Red-legged_Partridge_%28Perdiz_Roja%29_%28Alectoris_rufa%29_-_Torrevieja%2C_Spain_2024-02-04.jpg?width=900", pdf: "" },
   { nom: "Bécasse des bois", desc: "Limicole forestier au long bec, actif au crépuscule.", credit: "CC BY-SA 4.0 — Wikimedia Commons",
-    image: "https://commons.wikimedia.org/wiki/Special:FilePath/Eurasian_Woodcock_%28Scolopax_rusticola%29_%2826338656739%29.jpg?width=900",
-    pdf: "" },
+    image: "https://commons.wikimedia.org/wiki/Special:FilePath/Eurasian_Woodcock_%28Scolopax_rusticola%29_%2826338656739%29.jpg?width=900", pdf: "" },
   { nom: "Grive musicienne", desc: "Passereau au chant mélodieux, friand d'escargots.", credit: "CC BY-SA — Wikimedia Commons",
-    image: "https://commons.wikimedia.org/wiki/Special:FilePath/Grive_musicienne_Turdus_philomelos_%2850026366226%29.jpg?width=900",
-    pdf: "" },
+    image: "https://commons.wikimedia.org/wiki/Special:FilePath/Grive_musicienne_Turdus_philomelos_%2850026366226%29.jpg?width=900", pdf: "" },
   { nom: "Alouette des champs", desc: "Oiseau des champs au chant lancé en plein vol.", credit: "CC BY-SA — Wikimedia Commons",
-    image: "https://commons.wikimedia.org/wiki/Special:FilePath/Feldlerche_%28Alauda_arvensis%29.jpg?width=900",
-    pdf: "" },
+    image: "https://commons.wikimedia.org/wiki/Special:FilePath/Feldlerche_%28Alauda_arvensis%29.jpg?width=900", pdf: "" },
 ];
 
 /* ---------------- Couleurs & constantes ---------------- */
